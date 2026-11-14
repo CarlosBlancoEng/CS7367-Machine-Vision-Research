@@ -1,6 +1,6 @@
 # CS7367 Machine Vision Research
 
-One-time **sample-based dataset qualification** for **Image Enhancement as Preprocessing for Industrial Anomaly Detection Under Challenging Illumination**. This is not exhaustive image integrity certification. No experiments, enhancement, or anomaly detection are implemented.
+Research and dataset qualification for **Image Enhancement as Preprocessing for Industrial Anomaly Detection Under Challenging Illumination**. The validation notebook performs sample-based qualification, not exhaustive integrity certification. The separate research notebook implements the approved MVTec AD 2 PaDiM comparison.
 
 Open `notebooks/CS7367_Dataset_Validation.ipynb` in Google Colab, select a CPU runtime, and choose **Runtime → Run all**. Authorize the Drive mount. Pillow is included in Colab. The configuration cell expects:
 
@@ -30,3 +30,23 @@ Official sources consulted for layout and annotation rules:
 - [VisA reference repository](https://github.com/amazon-science/spot-diff), including its original data tree and `utils/prepare_data.py` category definitions.
 
 Implementation and synthetic tests do not establish dataset acceptance. Carlos executes in Colab; Sam Chatley reviews the three artifacts and recommends PASS/FAIL; Carlos retains final acceptance authority. Keep datasets, generated evidence, and executed notebook outputs out of Git. Do not merge to main or push acceptance-related changes without Carlos's explicit Git authorization.
+
+## Research experiments
+
+Open `notebooks/CS7367_Research_Experiments.ipynb` in a fresh Colab Python 3 runtime, choose CPU or an optional GPU, set `workloadSize` near the beginning, and select **Runtime → Run all**. The runtime needs PyTorch/torchvision, Pillow, OpenCV, NumPy, SciPy, and scikit-learn, normally included in Colab. First use downloads torchvision's ImageNet ResNet18 weights; loading failure stops the run rather than substituting random weights.
+
+MVTec AD 2 only: `can`, `wallplugs`, `sheet_metal`. Fit spatial Gaussian normal-reference distributions from `train/good`; evaluate only labeled `test_public/good` and `test_public/bad`. Validation and private tests are excluded. One fixed-seed manifest is reused across baseline, gamma, global histogram equalization, and CLAHE. Enhancements apply equally to reference and evaluation images; masks are not enhanced.
+
+| Workload | Reference cap per category | Evaluation cap per category |
+| --- | ---: | ---: |
+| `small` | 25 | 20 |
+| `medium` | 250 | 100 |
+| `large` | All eligible | All eligible |
+
+Evaluation sampling prioritizes both classes and reports actual balance. Reference/evaluation filenames are disjoint. Small/medium AUROC is a sample metric, not an estimate claimed equivalent to full-set AUROC.
+
+All conditions use 256×256 RGB inputs without cropping, ImageNet normalization, layers 1–3 of frozen ResNet18, a seed-fixed 32-channel subset aligned to 32×32, covariance regularization 0.01, Mahalanobis scores, and Gaussian smoothing σ=4. Batch-Welford moments avoid storing reference features for the entire dataset. Gamma uses exponent 0.7 on normalized CIELAB L; histogram equalization and CLAHE (clip 2, 8×8 tiles) use the same channel after resizing. These fixed resource choices are documented implementations, not a reproduction claim for published PaDiM results.
+
+Metrics are image-level AUROC and normalized **AU-PRO0.05**. The latter gives each 8-connected ground-truth region equal weight, sweeps exact score thresholds with tied scores grouped, interpolates at FPR 0.05, and divides the partial area by 0.05. Background pixels from normal and anomalous images enter FPR. Both evaluation classes are required; AU-PRO additionally requires all selected anomaly masks to be valid. Missing/degenerate masks produce a blank AU-PRO with an explicit reason while valid image labels can still support AUROC. Metrics use nearest-neighbor masks at **256×256**; small defects can disappear, and these values are not native-resolution official benchmark scores. Private illumination-shift conclusions remain unsupported by public-only metrics.
+
+Each run saves `metrics.csv`, `experiment_summary.json`, and `sample_manifest.csv` under `My Drive/ColabData/CS7367_Vision/output/experiments/<mode>/<UTC timestamp>/`. Results are saved after each condition with incomplete status until all configurations finish. Earlier runs are never overwritten. A restart creates a new folder; Batch 1 does not checkpoint/resume fitted models. Covariance memory is bounded by the fixed feature grid/dimension; exact metric sorting scales with the evaluation pixels of one category. Start with `small` before a larger run. No real dataset results are claimed by the implementation's synthetic tests.
