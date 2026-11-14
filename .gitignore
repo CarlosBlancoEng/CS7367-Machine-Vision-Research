@@ -1,0 +1,16 @@
+datasets/
+ColabData/
+mvtec_ad_2/
+VisA*/
+output/
+validation/
+dataset_inventory.csv
+validation_exceptions.csv
+validation_summary.json*
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+*.tar
+*.tar.gz
+*.zip
+.DS_Store
